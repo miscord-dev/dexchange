@@ -1,0 +1,9 @@
+apiVersion: dexchange.miscord.win/v1alpha1
+kind: DeXToken
+metadata:
+  labels:
+    app.kubernetes.io/name: dexchange
+    app.kubernetes.io/managed-by: kustomize
+  name: dextoken-sample
+spec:
+  # TODO(user): Add fields here

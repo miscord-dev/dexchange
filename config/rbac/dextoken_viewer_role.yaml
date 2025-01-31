@@ -1,0 +1,23 @@
+# permissions for end users to view dextokens.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: dexchange
+    app.kubernetes.io/managed-by: kustomize
+  name: dextoken-viewer-role
+rules:
+- apiGroups:
+  - dexchange.miscord.win
+  resources:
+  - dextokens
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - dexchange.miscord.win
+  resources:
+  - dextokens/status
+  verbs:
+  - get

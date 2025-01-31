@@ -1,0 +1,4 @@
+## Append samples of your project ##
+resources:
+- dexchange_v1alpha1_dextoken.yaml
+# +kubebuilder:scaffold:manifestskustomizesamples
