@@ -17,8 +17,6 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"time"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -33,7 +31,7 @@ type DeXTokenSpec struct {
 	// RefreshBefore is the duration before the token expires that the token should be refreshed.
 	// +optional
 	// +kubebuilder:default:="10m"
-	RefreshBefore time.Duration `json:"refreshBefore,omitempty"`
+	RefreshBefore metav1.Duration `json:"refreshBefore,omitempty"`
 
 	// SecretKey is the key in the secret containing the token.
 	SecretKey string `json:"secretKey,omitempty"`

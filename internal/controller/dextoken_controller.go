@@ -127,7 +127,7 @@ func (r *DeXTokenReconciler) reconcileNormal(ctx context.Context, dexToken *dexc
 	}
 
 	return ctrl.Result{
-		RequeueAfter: dexToken.Spec.RefreshBefore,
+		RequeueAfter: dexToken.Spec.RefreshBefore.Duration,
 	}, nil
 }
 
@@ -137,7 +137,7 @@ func (r *DeXTokenReconciler) checkExpired(ctx context.Context, dexToken *dexchan
 	now := time.Now()
 	exp, err := dex.GetTokenExp(string(secret.Data[secretKey]))
 	if err == nil {
-		refreshedAt := exp.Add(-dexToken.Spec.RefreshBefore)
+		refreshedAt := exp.Add(-dexToken.Spec.RefreshBefore.Duration)
 		if refreshedAt.After(now) {
 			return ctrl.Result{
 				RequeueAfter: refreshedAt.Sub(now),
