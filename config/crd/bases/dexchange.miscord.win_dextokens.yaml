@@ -91,6 +91,9 @@ spec:
                   that the token should be refreshed.
                 format: int64
                 type: integer
+              secretKey:
+                description: SecretKey is the key in the secret containing the token.
+                type: string
             type: object
           status:
             description: DeXTokenStatus defines the observed state of DeXToken.
