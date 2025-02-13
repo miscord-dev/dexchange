@@ -18,19 +18,27 @@ package controller
 
 import (
 	"context"
+	"fmt"
+	"net/http"
+	"net/url"
+	"time"
 
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	dexchangev1alpha1 "github.com/miscord-dev/dexchange/api/v1alpha1"
+	"github.com/miscord-dev/dexchange/internal/dex"
 )
 
 // DeXTokenReconciler reconciles a DeXToken object
 type DeXTokenReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	HTTPClient *http.Client
+	Scheme     *runtime.Scheme
 }
 
 // +kubebuilder:rbac:groups=dexchange.miscord.win,resources=dextokens,verbs=get;list;watch;create;update;patch;delete
@@ -47,11 +55,154 @@ type DeXTokenReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.19.0/pkg/reconcile
 func (r *DeXTokenReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
+	logger := log.FromContext(ctx)
 
-	// TODO(user): your logic here
+	dexToken := &dexchangev1alpha1.DeXToken{}
+	if err := r.Client.Get(ctx, req.NamespacedName, dexToken); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if !dexToken.ObjectMeta.DeletionTimestamp.IsZero() {
+		return ctrl.Result{}, nil
+	}
+
+	defer func() {
+		if err := r.Client.Status().Update(ctx, dexToken); err != nil {
+			logger.Error(err, "failed to update DeXToken status")
+		}
+	}()
+
+	if dexToken.Status.TokenSecretName == "" {
+		dexToken.Status.TokenSecretName = dexToken.Name
+
+		return ctrl.Result{
+			Requeue: true,
+		}, nil
+	}
 
 	return ctrl.Result{}, nil
+}
+
+func (r *DeXTokenReconciler) reconcileNormal(ctx context.Context, dexToken *dexchangev1alpha1.DeXToken) (ctrl.Result, error) {
+	logger := log.FromContext(ctx)
+
+	secretKey := dexToken.Spec.SecretKey
+	if secretKey == "" {
+		secretKey = "token"
+	}
+
+	var secret corev1.Secret
+	if err := r.Client.Get(ctx, client.ObjectKey{
+		Namespace: dexToken.Namespace,
+		Name:      dexToken.Status.TokenSecretName,
+	}, &secret); err != nil && !apierrors.IsNotFound(err) {
+		return ctrl.Result{}, err
+	}
+
+	if res, err := r.checkExpired(ctx, dexToken, &secret, secretKey); err != nil || res != (ctrl.Result{}) {
+		return res, err
+	}
+
+	token, err := r.issueToken(ctx, dexToken)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to issue token: %w", err)
+	}
+	logger.Info("new token is issued")
+
+	secret.Namespace = dexToken.Namespace
+	secret.Name = dexToken.Status.TokenSecretName
+
+	_, err = ctrl.CreateOrUpdate(ctx, r.Client, &secret, func() error {
+		secret.Data = make(map[string][]byte, 1)
+		secret.Data[secretKey] = []byte(token)
+
+		return ctrl.SetControllerReference(dexToken, &secret, r.Scheme)
+	})
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to create or update secret: %w", err)
+	}
+
+	if res, err := r.checkExpired(ctx, dexToken, &secret, secretKey); err != nil || res != (ctrl.Result{}) {
+		return res, err
+	}
+
+	return ctrl.Result{
+		RequeueAfter: dexToken.Spec.RefreshBefore,
+	}, nil
+}
+
+func (r *DeXTokenReconciler) checkExpired(ctx context.Context, dexToken *dexchangev1alpha1.DeXToken, secret *corev1.Secret, secretKey string) (ctrl.Result, error) {
+	logger := log.FromContext(ctx)
+
+	now := time.Now()
+	exp, err := dex.GetTokenExp(string(secret.Data[secretKey]))
+	if err == nil {
+		refreshedAt := exp.Add(-dexToken.Spec.RefreshBefore)
+		if refreshedAt.After(now) {
+			return ctrl.Result{
+				RequeueAfter: refreshedAt.Sub(now),
+			}, nil
+		}
+	} else {
+		logger.Error(err, "failed to get token expiration")
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (r *DeXTokenReconciler) issueToken(ctx context.Context, dexToken *dexchangev1alpha1.DeXToken) (string, error) {
+	values := url.Values{}
+	dexSpec := dexToken.Spec.DeX
+
+	if dexSpec.ConnectorID != "" {
+		values.Add("connector_id", dexSpec.ConnectorID)
+	}
+	if dexSpec.GrantType != "" {
+		values.Add("grant_type", dexSpec.GrantType)
+	} else {
+		values.Add("grant_type", "urn:ietf:params:oauth:grant-type:token-exchange")
+	}
+	if dexSpec.RequestedTokenType != "" {
+		values.Add("requested_token_type", dexSpec.RequestedTokenType)
+	}
+	if dexSpec.SubjectTokenType != "" {
+		values.Add("subject_token_type", dexSpec.SubjectTokenType)
+	}
+
+	clientSecret, err := r.getClientSecret(ctx, dexToken)
+	if err != nil {
+		return "", fmt.Errorf("failed to get client secret: %w", err)
+	}
+
+	config := dex.Config{
+		Client:    r.HTTPClient,
+		Endpoint:  dexToken.Spec.DeX.Endpoint,
+		Values:    values,
+		BasicAuth: fmt.Sprintf("%s:%s", dexToken.Spec.DeX.ClientID, clientSecret),
+	}
+
+	token, err := dex.Issue(ctx, config)
+	if err != nil {
+		return "", fmt.Errorf("failed to issue token: %w", err)
+	}
+
+	return token, nil
+}
+
+func (r *DeXTokenReconciler) getClientSecret(ctx context.Context, dexToken *dexchangev1alpha1.DeXToken) (string, error) {
+	if dexToken.Spec.DeX.ClientSecretRef.Name != "nil" {
+		var secret corev1.Secret
+		if err := r.Client.Get(ctx, client.ObjectKey{
+			Namespace: dexToken.Namespace,
+			Name:      dexToken.Spec.DeX.ClientSecretRef.Name,
+		}, &secret); err != nil {
+			return "", err
+		}
+
+		return string(secret.Data["clientSecret"]), nil
+	}
+
+	return dexToken.Spec.DeX.ClientSecret, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -59,5 +210,6 @@ func (r *DeXTokenReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&dexchangev1alpha1.DeXToken{}).
 		Named("dextoken").
+		Owns(&corev1.Secret{}).
 		Complete(r)
 }

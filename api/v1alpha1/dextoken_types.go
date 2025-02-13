@@ -34,6 +34,9 @@ type DeXTokenSpec struct {
 	// +optional
 	// +kubebuilder:default:="10m"
 	RefreshBefore time.Duration `json:"refreshBefore,omitempty"`
+
+	// SecretKey is the key in the secret containing the token.
+	SecretKey string `json:"secretKey,omitempty"`
 }
 
 type DeXConfig struct {
