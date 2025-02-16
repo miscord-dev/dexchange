@@ -89,8 +89,7 @@ spec:
                 default: 10m
                 description: RefreshBefore is the duration before the token expires
                   that the token should be refreshed.
-                format: int64
-                type: integer
+                type: string
               secretKey:
                 description: SecretKey is the key in the secret containing the token.
                 type: string
