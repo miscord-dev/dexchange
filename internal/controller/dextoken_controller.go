@@ -48,6 +48,7 @@ type DeXTokenReconciler struct {
 // +kubebuilder:rbac:groups=dexchange.miscord.win,resources=dextokens/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=dexchange.miscord.win,resources=dextokens/finalizers,verbs=update
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
+// +kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs=get;list;watch
 // +kubebuilder:rbac:groups=core,resources=serviceaccounts/token,verbs=create
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
@@ -230,7 +231,7 @@ func (r *DeXTokenReconciler) issueServiceAccountToken(ctx context.Context, dexTo
 }
 
 func (r *DeXTokenReconciler) getClientSecret(ctx context.Context, dexToken *dexchangev1alpha1.DeXToken) (string, error) {
-	if dexToken.Spec.DeX.ClientSecretRef.Name != "nil" {
+	if dexToken.Spec.DeX.ClientSecretRef.Name != "" {
 		var secret corev1.Secret
 		if err := r.Client.Get(ctx, client.ObjectKey{
 			Namespace: dexToken.Namespace,
