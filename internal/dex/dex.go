@@ -64,6 +64,10 @@ func Issue(ctx context.Context, config Config) (string, error) {
 }
 
 func GetTokenExp(token string) (*time.Time, error) {
+	if token == "" {
+		return nil, errors.New("token is empty")
+	}
+
 	var claims jwt.RegisteredClaims
 	_, _, err := new(jwt.Parser).ParseUnverified(token, &claims)
 	if err != nil {

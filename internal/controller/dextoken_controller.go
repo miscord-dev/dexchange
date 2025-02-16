@@ -147,7 +147,7 @@ func (r *DeXTokenReconciler) checkExpired(ctx context.Context, dexToken *dexchan
 			}, nil
 		}
 	} else {
-		logger.Error(err, "failed to get token expiration")
+		logger.Info("failed to get token expiration", "error", err)
 	}
 
 	return ctrl.Result{}, nil
