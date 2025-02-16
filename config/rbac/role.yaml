@@ -8,6 +8,7 @@ rules:
   - ""
   resources:
   - secrets
+  - serviceaccounts
   verbs:
   - get
   - list
