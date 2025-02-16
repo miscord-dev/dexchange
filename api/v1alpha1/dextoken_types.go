@@ -28,6 +28,9 @@ type DeXTokenSpec struct {
 	// DeX is the configuration for the DeX Machine Auth.
 	DeX DeXConfig `json:"dex,omitempty"`
 
+	// ServiceAccount is the configuration for the service account to create the token.
+	ServiceAccount ServiceAccount `json:"serviceAccount,omitempty"`
+
 	// RefreshBefore is the duration before the token expires that the token should be refreshed.
 	// +optional
 	// +kubebuilder:default:="10m"
@@ -35,6 +38,14 @@ type DeXTokenSpec struct {
 
 	// SecretKey is the key in the secret containing the token.
 	SecretKey string `json:"secretKey,omitempty"`
+}
+
+type ServiceAccount struct {
+	// Name is the name of the service account.
+	Name string `json:"name,omitempty"`
+
+	// Audiences are the intendend audiences of the token.
+	Audiences []string `json:"audiences,omitempty"`
 }
 
 type DeXConfig struct {
@@ -73,10 +84,6 @@ type DeXConfig struct {
 	// SubjectTokenType is the type of the subject token used in the token exchange.
 	// +optional
 	SubjectTokenType string `json:"subjectTokenType,omitempty"`
-
-	// ServiceAccountName is the name of the service account to issue the token for.
-	// +optional
-	ServiceAccountName string `json:"serviceAccountName,omitempty"`
 }
 
 type SecretRef struct {

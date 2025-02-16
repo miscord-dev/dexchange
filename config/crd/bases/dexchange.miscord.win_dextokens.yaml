@@ -76,10 +76,6 @@ spec:
                     items:
                       type: string
                     type: array
-                  serviceAccountName:
-                    description: ServiceAccountName is the name of the service account
-                      to issue the token for.
-                    type: string
                   subjectTokenType:
                     description: SubjectTokenType is the type of the subject token
                       used in the token exchange.
@@ -93,6 +89,19 @@ spec:
               secretKey:
                 description: SecretKey is the key in the secret containing the token.
                 type: string
+              serviceAccount:
+                description: ServiceAccount is the configuration for the service account
+                  to create the token.
+                properties:
+                  audiences:
+                    description: Audiences are the intendend audiences of the token.
+                    items:
+                      type: string
+                    type: array
+                  name:
+                    description: Name is the name of the service account.
+                    type: string
+                type: object
             type: object
           status:
             description: DeXTokenStatus defines the observed state of DeXToken.

@@ -21,17 +21,20 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	dexchangev1alpha1 "github.com/miscord-dev/dexchange/api/v1alpha1"
 	"github.com/miscord-dev/dexchange/internal/dex"
+	authenticationv1 "k8s.io/api/authentication/v1"
 )
 
 // DeXTokenReconciler reconciles a DeXToken object
@@ -45,6 +48,7 @@ type DeXTokenReconciler struct {
 // +kubebuilder:rbac:groups=dexchange.miscord.win,resources=dextokens/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=dexchange.miscord.win,resources=dextokens/finalizers,verbs=update
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
+// +kubebuilder:rbac:groups=core,resources=serviceaccounts/token,verbs=create
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -169,6 +173,17 @@ func (r *DeXTokenReconciler) issueToken(ctx context.Context, dexToken *dexchange
 	if dexSpec.SubjectTokenType != "" {
 		values.Add("subject_token_type", dexSpec.SubjectTokenType)
 	}
+	if len(dexSpec.Scopes) > 0 {
+		values.Add("scope", strings.Join(dexSpec.Scopes, " "))
+	} else {
+		values.Add("scope", "openid")
+	}
+
+	saToken, err := r.issueServiceAccountToken(ctx, dexToken)
+	if err != nil {
+		return "", fmt.Errorf("failed to issue token: %w", err)
+	}
+	values.Add("subject_token", saToken)
 
 	clientSecret, err := r.getClientSecret(ctx, dexToken)
 	if err != nil {
@@ -188,6 +203,33 @@ func (r *DeXTokenReconciler) issueToken(ctx context.Context, dexToken *dexchange
 	}
 
 	return token, nil
+}
+
+func (r *DeXTokenReconciler) issueServiceAccountToken(ctx context.Context, dexToken *dexchangev1alpha1.DeXToken) (string, error) {
+	serviceAccountName := dexToken.Spec.ServiceAccount.Name
+
+	var serviceAccount corev1.ServiceAccount
+	err := r.Client.Get(ctx, client.ObjectKey{
+		Namespace: dexToken.Namespace,
+		Name:      serviceAccountName,
+	}, &serviceAccount)
+	if err != nil {
+		return "", fmt.Errorf("failed to get ServiceAccount %s: %w", serviceAccountName, err)
+	}
+
+	token := &authenticationv1.TokenRequest{
+		Spec: authenticationv1.TokenRequestSpec{
+			Audiences:         dexToken.Spec.ServiceAccount.Audiences,
+			ExpirationSeconds: ptr.To[int64](600),
+		},
+	}
+
+	err = r.Client.SubResource("token").Create(ctx, &serviceAccount, token, &client.SubResourceCreateOptions{})
+	if err != nil {
+		return "", fmt.Errorf("failed to create token for ServiceAccount %s: %w", serviceAccountName, err)
+	}
+
+	return token.Status.Token, nil
 }
 
 func (r *DeXTokenReconciler) getClientSecret(ctx context.Context, dexToken *dexchangev1alpha1.DeXToken) (string, error) {
