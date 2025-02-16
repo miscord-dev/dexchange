@@ -87,6 +87,7 @@ spec:
                   that the token should be refreshed.
                 type: string
               secretKey:
+                default: token
                 description: SecretKey is the key in the secret containing the token.
                 type: string
               serviceAccount:

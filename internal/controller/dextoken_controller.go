@@ -85,16 +85,13 @@ func (r *DeXTokenReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}, nil
 	}
 
-	return ctrl.Result{}, nil
+	return r.reconcileNormal(ctx, dexToken)
 }
 
 func (r *DeXTokenReconciler) reconcileNormal(ctx context.Context, dexToken *dexchangev1alpha1.DeXToken) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
 	secretKey := dexToken.Spec.SecretKey
-	if secretKey == "" {
-		secretKey = "token"
-	}
 
 	var secret corev1.Secret
 	if err := r.Client.Get(ctx, client.ObjectKey{

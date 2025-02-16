@@ -37,6 +37,8 @@ type DeXTokenSpec struct {
 	RefreshBefore metav1.Duration `json:"refreshBefore,omitempty"`
 
 	// SecretKey is the key in the secret containing the token.
+	// +optional
+	// +kubebuilder:default:="token"
 	SecretKey string `json:"secretKey,omitempty"`
 }
 
