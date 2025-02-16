@@ -47,7 +47,7 @@ type DeXTokenReconciler struct {
 // +kubebuilder:rbac:groups=dexchange.miscord.win,resources=dextokens,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=dexchange.miscord.win,resources=dextokens/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=dexchange.miscord.win,resources=dextokens/finalizers,verbs=update
-// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
+// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs=get;list;watch
 // +kubebuilder:rbac:groups=core,resources=serviceaccounts/token,verbs=create
 
