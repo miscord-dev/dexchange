@@ -45,7 +45,9 @@ func Issue(ctx context.Context, config Config) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to send a request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		b, _ := io.ReadAll(resp.Body)
