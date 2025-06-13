@@ -45,6 +45,7 @@ images:
   - name: controller
     newTag: main
     newName: ghcr.io/miscord-dev/dexchange
+    digest: sha256:6fe19ae37223e322eac2d0ce6cd8db5899115f011881e50e69326848b8648f40
 
 # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix including the one in
 # crd/kustomization.yaml
