@@ -64,11 +64,11 @@ func (r *DeXTokenReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	logger := log.FromContext(ctx)
 
 	dexToken := &dexchangev1alpha1.DeXToken{}
-	if err := r.Client.Get(ctx, req.NamespacedName, dexToken); err != nil {
+	if err := r.Get(ctx, req.NamespacedName, dexToken); err != nil {
 		return ctrl.Result{}, err
 	}
 
-	if !dexToken.ObjectMeta.DeletionTimestamp.IsZero() {
+	if !dexToken.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, nil
 	}
 
@@ -95,7 +95,7 @@ func (r *DeXTokenReconciler) reconcileNormal(ctx context.Context, dexToken *dexc
 	secretKey := dexToken.Spec.SecretKey
 
 	var secret corev1.Secret
-	if err := r.Client.Get(ctx, client.ObjectKey{
+	if err := r.Get(ctx, client.ObjectKey{
 		Namespace: dexToken.Namespace,
 		Name:      dexToken.Status.TokenSecretName,
 	}, &secret); err != nil && !apierrors.IsNotFound(err) {
@@ -134,6 +134,7 @@ func (r *DeXTokenReconciler) reconcileNormal(ctx context.Context, dexToken *dexc
 	}, nil
 }
 
+//nolint:unparam
 func (r *DeXTokenReconciler) checkExpired(ctx context.Context, dexToken *dexchangev1alpha1.DeXToken, secret *corev1.Secret, secretKey string) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
@@ -207,7 +208,7 @@ func (r *DeXTokenReconciler) issueServiceAccountToken(ctx context.Context, dexTo
 	serviceAccountName := dexToken.Spec.ServiceAccount.Name
 
 	var serviceAccount corev1.ServiceAccount
-	err := r.Client.Get(ctx, client.ObjectKey{
+	err := r.Get(ctx, client.ObjectKey{
 		Namespace: dexToken.Namespace,
 		Name:      serviceAccountName,
 	}, &serviceAccount)
@@ -233,7 +234,7 @@ func (r *DeXTokenReconciler) issueServiceAccountToken(ctx context.Context, dexTo
 func (r *DeXTokenReconciler) getClientSecret(ctx context.Context, dexToken *dexchangev1alpha1.DeXToken) (string, error) {
 	if dexToken.Spec.DeX.ClientSecretRef.Name != "" {
 		var secret corev1.Secret
-		if err := r.Client.Get(ctx, client.ObjectKey{
+		if err := r.Get(ctx, client.ObjectKey{
 			Namespace: dexToken.Namespace,
 			Name:      dexToken.Spec.DeX.ClientSecretRef.Name,
 		}, &secret); err != nil {
