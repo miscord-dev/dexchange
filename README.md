@@ -1,10 +1,10 @@
 # dexchange
-A Kubernetes controller for exchanging ServiceAccount tokens with Dex identity provider tokens.
+A Kubernetes controller for exchanging ServiceAccount tokens with DeX identity provider tokens.
 
 ## Description
-Dexchange is a Kubernetes controller that facilitates secure token exchange between Kubernetes ServiceAccount tokens and Dex (OIDC) identity provider tokens. This controller enables workloads running in Kubernetes to authenticate with external services that use Dex for identity management, providing a seamless bridge between Kubernetes-native authentication and external OIDC-based systems.
+DeXchange is a Kubernetes controller that facilitates secure token exchange between Kubernetes ServiceAccount tokens and DeX (OIDC) identity provider tokens. This controller enables workloads running in Kubernetes to authenticate with external services that use DeX for identity management, providing a seamless bridge between Kubernetes-native authentication and external OIDC-based systems.
 
-The controller watches for DexToken custom resources and manages the token exchange process, ensuring that Kubernetes workloads can securely access external services without requiring manual token management or exposing sensitive credentials.
+The controller watches for DeXToken custom resources and manages the token exchange process, ensuring that Kubernetes workloads can securely access external services without requiring manual token management or exposing sensitive credentials.
 
 ## Getting Started
 
