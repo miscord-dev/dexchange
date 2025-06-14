@@ -101,7 +101,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         uses: imranismail/setup-kustomize@v1
         with:
-          kustomize-version: "5.0.0"
+          kustomize-version: "5.6.0"
 
       - name: Generate manifests with release image
         if: startsWith(github.ref, 'refs/tags/')
