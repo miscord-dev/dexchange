@@ -1,8 +1,10 @@
 # dexchange
-// TODO(user): Add simple overview of use/purpose
+A Kubernetes controller for exchanging ServiceAccount tokens with Dex identity provider tokens.
 
 ## Description
-// TODO(user): An in-depth paragraph about your project and overview of use
+Dexchange is a Kubernetes controller that facilitates secure token exchange between Kubernetes ServiceAccount tokens and Dex (OIDC) identity provider tokens. This controller enables workloads running in Kubernetes to authenticate with external services that use Dex for identity management, providing a seamless bridge between Kubernetes-native authentication and external OIDC-based systems.
+
+The controller watches for DexToken custom resources and manages the token exchange process, ensuring that Kubernetes workloads can securely access external services without requiring manual token management or exposing sensitive credentials.
 
 ## Getting Started
 
@@ -90,7 +92,15 @@ kubectl apply -f https://raw.githubusercontent.com/<org>/dexchange/<tag or branc
 ```
 
 ## Contributing
-// TODO(user): Add detailed information on how you would like others to contribute to this project
+We welcome contributions to dexchange! Please feel free to submit issues, feature requests, and pull requests. When contributing:
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes with appropriate tests
+4. Ensure all tests pass
+5. Submit a pull request with a clear description of your changes
+
+For major changes, please open an issue first to discuss the proposed changes.
 
 **NOTE:** Run `make help` for more information on all potential `make` targets
 
