@@ -95,3 +95,30 @@ jobs:
         # This step uses the identity token to provision an ephemeral certificate
         # against the sigstore community Fulcio instance.
         run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
+
+      # Generate and upload manifests for tag builds (releases)
+      - name: Setup Kustomize
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: imranismail/setup-kustomize@v1
+        with:
+          kustomize-version: "5.6.0"
+
+      - name: Generate manifests with release image
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          cd config/default
+          # Update the image to use the newly built image with digest
+          kustomize edit set image controller=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build-and-push.outputs.digest }}
+          # Generate manifests
+          kustomize build . > ../../dexchange-manifests.yaml
+
+      - name: Upload manifests to release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./dexchange-manifests.yaml
+          asset_name: dexchange-manifests.yaml
+          asset_content_type: application/x-yaml
